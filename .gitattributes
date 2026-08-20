@@ -1,0 +1,6 @@
+# Normalise line endings to LF in the repository, matching Prettier's `endOfLine: lf`.
+# Without this, checking out on Windows produces CRLF files that `prettier --check` fails.
+* text=auto eol=lf
+
+# Generated / vendored files are excluded from language statistics and diffs.
+package-lock.json linguist-generated=true -diff
