@@ -2,9 +2,14 @@
 
 **A fixed-capacity, in-memory LRU (Least Recently Used) cache in TypeScript — with a guaranteed O(1) `get` and `put`, built from a Hash Map and a Doubly Linked List working in tandem.**
 
+> **Note:** this repository is being rebuilt as a **semantic cache for LLM prompts** with an
+> open benchmark of its false-positive rate. The LRU cache documented below is its core and
+> is unchanged. See [PROJECT.md](PROJECT.md) for the plan; this README is rewritten in Phase 6.
+
+[![CI](https://github.com/mertdogruluk/semantic-cache-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/mertdogruluk/semantic-cache-ts/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-76%20passing-success?logo=jest&logoColor=white)](#testing)
+[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A522-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Tests](https://img.shields.io/badge/tests-76%20passing-success?logo=vitest&logoColor=white)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-success)](#testing)
 [![Strict](https://img.shields.io/badge/strict--typed-blue)](tsconfig.json)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -13,7 +18,7 @@
 const cache = new LRUCache<string, User>(1000);
 
 cache.put('u:42', user);
-cache.get('u:42');   // → user, and it is now the most recently used
+cache.get('u:42'); // → user, and it is now the most recently used
 ```
 
 No dependencies. No `setInterval` sweeper. No hidden `O(n)` scan.
@@ -42,19 +47,19 @@ No dependencies. No `setInterval` sweeper. No hidden `O(n)` scan.
 
 A cache has limited room. When it is full and something new arrives, one entry has to go. The LRU policy picks the entry **nobody has touched for the longest time** — the best guess at what will be missed least.
 
-Implementing that policy is where it gets interesting, because a cache must answer two very different questions on *every single operation*:
+Implementing that policy is where it gets interesting, because a cache must answer two very different questions on _every single operation_:
 
 1. **"Where is the entry for this key?"** — a lookup problem.
 2. **"Which entry is the least recently used?"** — an ordering problem.
 
 Neither of the obvious single-structure solutions can answer both quickly:
 
-| Approach | Lookup | Find the LRU entry | Verdict |
-| --- | --- | --- | --- |
-| `Map` alone | ✅ O(1) | ❌ O(n) — must scan every entry to compare timestamps | Reads are fast, eviction crawls |
-| Array / sorted list alone | ❌ O(n) | ✅ O(1) — it is at the end | Eviction is fast, reads crawl |
-| `Map` + timestamps | ✅ O(1) | ❌ O(n) — still has to find the minimum | Only looks clever |
-| **Map + doubly linked list** | ✅ **O(1)** | ✅ **O(1)** | ✔ this project |
+| Approach                     | Lookup      | Find the LRU entry                                    | Verdict                         |
+| ---------------------------- | ----------- | ----------------------------------------------------- | ------------------------------- |
+| `Map` alone                  | ✅ O(1)     | ❌ O(n) — must scan every entry to compare timestamps | Reads are fast, eviction crawls |
+| Array / sorted list alone    | ❌ O(n)     | ✅ O(1) — it is at the end                            | Eviction is fast, reads crawl   |
+| `Map` + timestamps           | ✅ O(1)     | ❌ O(n) — still has to find the minimum               | Only looks clever               |
+| **Map + doubly linked list** | ✅ **O(1)** | ✅ **O(1)**                                           | ✔ this project                  |
 
 The insight: **use one structure for each question, and connect them so no operation ever has to search.**
 
@@ -62,7 +67,7 @@ The insight: **use one structure for each question, and connect them so no opera
 
 ## The idea in one picture
 
-The Map stores keys. The list stores *order*. And the Map does not point at values — **it points at the list nodes themselves**.
+The Map stores keys. The list stores _order_. And the Map does not point at values — **it points at the list nodes themselves**.
 
 ```text
    Map (lookup)        "a" ──┐        "b" ──┐        "c" ──┐
@@ -91,13 +96,13 @@ That one design choice is what makes everything else constant time:
 
 ### The list solves order, but is blind to lookup
 
-A list keeps entries in recency order, so the oldest is always at the end. But finding a *specific* key in it means walking from one end — O(n), on every single read.
+A list keeps entries in recency order, so the oldest is always at the end. But finding a _specific_ key in it means walking from one end — O(n), on every single read.
 
 ### Together, each covers the other's blind spot
 
 The Map never has to think about order; the list never has to search. Every operation is a fixed handful of pointer assignments, whether the cache holds ten entries or ten million.
 
-### Why the list has to be *doubly* linked
+### Why the list has to be _doubly_ linked
 
 Promoting an entry means pulling it out of the middle of the list. To unlink node `B`, its neighbours `A` and `C` have to be joined:
 
@@ -118,18 +123,18 @@ A cache with capacity 2, one operation at a time:
 const cache = new LRUCache<string, number>(2);
 ```
 
-| Operation | What happens internally | List (newest → oldest) |
-| --- | --- | --- |
-| `put('a', 1)` | New node, added to Map + front of list | `a` |
-| `put('b', 2)` | New node, added to front | `b → a` |
-| `get('a')` → `1` | Hit: node found via Map, moved to front | `a → b` |
-| `put('c', 3)` | Full → evict the node before the tail (`b`), then insert | `c → a` |
-| `get('b')` → `undefined` | Miss: `b` was evicted. **Order untouched** | `c → a` |
-| `put('a', 9)` | Key exists → overwrite value, move to front. **Nothing is evicted** | `a → c` |
+| Operation                | What happens internally                                             | List (newest → oldest) |
+| ------------------------ | ------------------------------------------------------------------- | ---------------------- |
+| `put('a', 1)`            | New node, added to Map + front of list                              | `a`                    |
+| `put('b', 2)`            | New node, added to front                                            | `b → a`                |
+| `get('a')` → `1`         | Hit: node found via Map, moved to front                             | `a → b`                |
+| `put('c', 3)`            | Full → evict the node before the tail (`b`), then insert            | `c → a`                |
+| `get('b')` → `undefined` | Miss: `b` was evicted. **Order untouched**                          | `c → a`                |
+| `put('a', 9)`            | Key exists → overwrite value, move to front. **Nothing is evicted** | `a → c`                |
 
 Two behaviours worth pointing out, because they are exactly where naive implementations go wrong:
 
-- **`get('a')` changed the eviction outcome.** Without that read, `put('c', 3)` would have evicted `a`. LRU evicts by *recency of use*, never by insertion order.
+- **`get('a')` changed the eviction outcome.** Without that read, `put('c', 3)` would have evicted `a`. LRU evicts by _recency of use_, never by insertion order.
 - **`put('a', 9)` on an existing key evicted nothing.** The entry count did not grow, so nothing needed to leave. An implementation that evicts on every `put` silently loses data.
 
 ---
@@ -140,7 +145,7 @@ Two behaviours worth pointing out, because they are exactly where naive implemen
 
 The list is bounded by two permanent placeholder nodes that hold no data and are never handed to callers.
 
-Without them, every insert and remove has to ask: *is the list empty? is this the first node? is this the last one?* Each `yes` needs its own branch that updates a `head`/`tail` field instead of a neighbour's pointer — and that is precisely where linked-list bugs breed.
+Without them, every insert and remove has to ask: _is the list empty? is this the first node? is this the last one?_ Each `yes` needs its own branch that updates a `head`/`tail` field instead of a neighbour's pointer — and that is precisely where linked-list bugs breed.
 
 With sentinels, **every real node is guaranteed to have both a `prev` and a `next`**, even when it is the only node in the list. One unconditional rewiring covers every case:
 
@@ -157,7 +162,7 @@ public addToFront(node: Node<K, V>): void {
 }
 ```
 
-No `if`. No empty-list case. The special cases were not *handled* — they were designed out of existence.
+No `if`. No empty-list case. The special cases were not _handled_ — they were designed out of existence.
 
 ### 2. Each node stores its own key
 
@@ -180,17 +185,17 @@ private evictLeastRecentlyUsed(): void {
 
 ## Complexity
 
-| Operation | Time | Space | Why |
-| --- | --- | --- | --- |
-| `get(key)` | **O(1)** | — | One Map lookup + a constant-time re-link |
-| `put(key, value)` — new | **O(1)** | O(1) | One Map insert + four pointer writes |
-| `put(key, value)` — existing | **O(1)** | — | Value overwritten in place, node promoted |
-| `put(key, value)` — evicting | **O(1)** | — | Victim is at a known position; no search |
-| `has(key)` / `peek(key)` | **O(1)** | — | Map lookup only, order untouched |
-| `delete(key)` | **O(1)** | — | Unlink via known neighbours + Map delete |
-| `clear()` | **O(1)** | — | Sentinels re-linked; the old chain is collected wholesale |
-| `keys()` | O(n) | O(n) | Debug/inspection helper — never on the hot path |
-| **Total** | | **O(capacity)** | Memory is bounded by capacity, not by traffic |
+| Operation                    | Time     | Space           | Why                                                       |
+| ---------------------------- | -------- | --------------- | --------------------------------------------------------- |
+| `get(key)`                   | **O(1)** | —               | One Map lookup + a constant-time re-link                  |
+| `put(key, value)` — new      | **O(1)** | O(1)            | One Map insert + four pointer writes                      |
+| `put(key, value)` — existing | **O(1)** | —               | Value overwritten in place, node promoted                 |
+| `put(key, value)` — evicting | **O(1)** | —               | Victim is at a known position; no search                  |
+| `has(key)` / `peek(key)`     | **O(1)** | —               | Map lookup only, order untouched                          |
+| `delete(key)`                | **O(1)** | —               | Unlink via known neighbours + Map delete                  |
+| `clear()`                    | **O(1)** | —               | Sentinels re-linked; the old chain is collected wholesale |
+| `keys()`                     | O(n)     | O(n)            | Debug/inspection helper — never on the hot path           |
+| **Total**                    |          | **O(capacity)** | Memory is bounded by capacity, not by traffic             |
 
 ---
 
@@ -244,13 +249,13 @@ interface User {
 const users = new LRUCache<string, User>(500);
 
 function getUser(id: string): User {
-  const cached = users.get(id);        // O(1), and marks the entry as recently used
+  const cached = users.get(id); // O(1), and marks the entry as recently used
   if (cached !== undefined) {
     return cached;
   }
 
   const user = expensiveDatabaseCall(id);
-  users.put(id, user);                 // evicts the coldest entry if full
+  users.put(id, user); // evicts the coldest entry if full
   return user;
 }
 ```
@@ -267,17 +272,17 @@ Creates a cache holding at most `capacity` entries.
 
 Throws `RangeError` if `capacity` is not a positive integer. A capacity of `0`, `1.5` or `Infinity` has no coherent eviction behaviour, so the mistake surfaces at construction instead of turning into strange behaviour months later.
 
-| Member | Returns | Description |
-| --- | --- | --- |
-| `get(key)` | `V \| undefined` | Reads a value **and marks it as most recently used**. |
-| `put(key, value)` | `void` | Inserts or overwrites. Evicts the LRU entry only when a *new* key overflows the capacity. |
-| `has(key)` | `boolean` | Whether the key is cached — **without** counting as a use. |
-| `peek(key)` | `V \| undefined` | Reads a value **without** changing the recency order. For metrics and debugging. |
-| `delete(key)` | `boolean` | Removes an entry from both structures. `false` if it was not cached. |
-| `clear()` | `void` | Empties the cache; capacity and usability are retained. |
-| `size` | `number` | Entries currently cached. |
-| `capacity` | `number` | The configured maximum. |
-| `keys()` | `K[]` | Keys from most to least recently used. O(n) — for tests and debugging. |
+| Member            | Returns          | Description                                                                               |
+| ----------------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| `get(key)`        | `V \| undefined` | Reads a value **and marks it as most recently used**.                                     |
+| `put(key, value)` | `void`           | Inserts or overwrites. Evicts the LRU entry only when a _new_ key overflows the capacity. |
+| `has(key)`        | `boolean`        | Whether the key is cached — **without** counting as a use.                                |
+| `peek(key)`       | `V \| undefined` | Reads a value **without** changing the recency order. For metrics and debugging.          |
+| `delete(key)`     | `boolean`        | Removes an entry from both structures. `false` if it was not cached.                      |
+| `clear()`         | `void`           | Empties the cache; capacity and usability are retained.                                   |
+| `size`            | `number`         | Entries currently cached.                                                                 |
+| `capacity`        | `number`         | The configured maximum.                                                                   |
+| `keys()`          | `K[]`            | Keys from most to least recently used. O(n) — for tests and debugging.                    |
 
 **Note on `undefined` values:** `get` returns `undefined` for a miss, so if `V` itself can be `undefined`, use `has(key)` to tell a stored `undefined` from an absent key.
 
@@ -339,7 +344,7 @@ The build is configured under TypeScript `strict` mode with `noUncheckedIndexedA
 
 **Why does `unlink()` clear pointers on removal?** An evicted node holding references to its former neighbours can keep an entire chain of dropped entries reachable, defeating garbage collection. In a bounded in-memory cache that is a silent leak.
 
-**What is intentionally *not* here?** Per-entry TTL, thread safety, async loaders and persistence are all out of scope. This project exists to demonstrate the O(1) LRU mechanism cleanly; each of those features would be a layer on top, not a change to the core.
+**What is intentionally _not_ here?** Per-entry TTL, thread safety, async loaders and persistence are all out of scope. This project exists to demonstrate the O(1) LRU mechanism cleanly; each of those features would be a layer on top, not a change to the core.
 
 ---
 
