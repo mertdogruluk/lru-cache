@@ -1,4 +1,4 @@
-import { Node } from './Node';
+import { Node } from './Node.js';
 
 /**
  * A doubly linked list that keeps cache entries ordered by recency of use:
@@ -174,7 +174,7 @@ export class DoublyLinkedList<K, V> {
   public keysFromMostRecent(): K[] {
     const keys: K[] = [];
 
-    for (let current = this.head.next; current !== null && current !== this.tail; ) {
+    for (let current = this.head.next; current !== null && current !== this.tail;) {
       keys.push(current.key);
       current = current.next;
     }

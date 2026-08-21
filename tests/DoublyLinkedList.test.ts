@@ -1,5 +1,7 @@
-import { DoublyLinkedList } from '../src/core/DoublyLinkedList';
-import { Node } from '../src/core/Node';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { DoublyLinkedList } from '../src/core/DoublyLinkedList.js';
+import { Node } from '../src/core/Node.js';
 
 /** Helper: builds a detached node with a string key and numeric value. */
 const node = (key: string, value = 0): Node<string, number> => new Node(key, value);

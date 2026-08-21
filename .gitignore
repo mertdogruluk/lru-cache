@@ -3,6 +3,16 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Downloaded embedding models. all-MiniLM-L6-v2 alone is ~90 MB; model weights must
+# never enter git history, where they cannot be removed cheaply.
+.cache/
+models/
+*.onnx
+
+# Benchmark artefacts are regenerated, not versioned. Committed result tables live in
+# docs/ and are added deliberately.
+bench/results/
+
 # Logs
 npm-debug.log*
 yarn-error.log*

@@ -1,20 +1,16 @@
 {
   "compilerOptions": {
-    /* Language & Environment */
+    /* Language & environment. NodeNext is what makes this a real ESM project: relative
+       imports must carry a .js extension, exactly as Node resolves them at runtime. */
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
-    /* Emit */
-    "outDir": "dist",
-    "rootDir": ".",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "removeComments": false,
+    /* No emit here — tsup builds the package, tsc only type-checks. */
+    "noEmit": true,
 
-    /* Strictness — a data-structure library has no excuse for loose typing */
+    /* Strictness — a library whose whole point is measurement cannot afford loose types. */
     "strict": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
@@ -22,6 +18,7 @@
     "noImplicitReturns": true,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
 
     /* Interop */
     "esModuleInterop": true,
@@ -29,8 +26,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
 
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "bench/**/*.ts", "*.config.ts"],
   "exclude": ["node_modules", "dist", "coverage"]
 }

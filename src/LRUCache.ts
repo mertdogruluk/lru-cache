@@ -1,5 +1,5 @@
-import { DoublyLinkedList } from './core/DoublyLinkedList';
-import { Node } from './core/Node';
+import { DoublyLinkedList } from './core/DoublyLinkedList.js';
+import { Node } from './core/Node.js';
 
 /**
  * A fixed-capacity, in-memory LRU (Least Recently Used) cache with **O(1)** `get` and
@@ -213,7 +213,7 @@ export class LRUCache<K, V> {
     // Defensive: with a positive capacity the list cannot be empty at this point, since
     // the caller only evicts when the cache is full. Unreachable by design, hence
     // excluded from coverage rather than left as a permanent gap in the report.
-    /* istanbul ignore next -- @preserve: guards an impossible state */
+    /* v8 ignore next 3 -- guards a state the caller makes impossible */
     if (lru === null) {
       return;
     }

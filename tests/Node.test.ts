@@ -1,4 +1,6 @@
-import { Node } from '../src/core/Node';
+import { describe, expect, it } from 'vitest';
+
+import { Node } from '../src/core/Node.js';
 
 describe('Node', () => {
   it('stores the key and value it was constructed with', () => {

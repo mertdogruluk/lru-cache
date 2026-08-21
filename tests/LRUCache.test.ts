@@ -1,4 +1,6 @@
-import { LRUCache } from '../src/LRUCache';
+import { describe, expect, it } from 'vitest';
+
+import { LRUCache } from '../src/LRUCache.js';
 
 describe('LRUCache', () => {
   describe('construction', () => {
